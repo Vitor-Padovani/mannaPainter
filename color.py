@@ -3,14 +3,17 @@ import numpy as np
 
 debug_mode = False
 paused = False
-changed_mode = False
+changed_mode = True
 
 filter_mode = None
 
-color_mode = 'all'
-color_limits = (15, 160)
+color_mode = 'green'
+color_limits = (70, 85)
 
-l_h, l_s, l_v = 15, 100, 100
+min_saturation = 90
+min_brightness = 90
+
+l_h, l_s, l_v = 15, min_saturation, min_brightness
 u_h, u_s, u_v = 160, 255, 255
 
 def nothing(x):
@@ -18,10 +21,12 @@ def nothing(x):
 
 cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
 
+
 print("Frame default resolution: (" + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")")
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1024)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 576)
 print("Frame resolution set to: (" + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")")
+
 
 cv2.namedWindow("Trackbars")
 cv2.createTrackbar("L - H", "Trackbars", 0, 179, nothing)
@@ -35,7 +40,7 @@ timer = cv2.getTickCount() # must be before video read
 _, frame = cap.read()
 
 # TODO make the drawing receive the drawing_mask but with the color blue
-drawing_mask = np.zeros((frame.shape[0], frame.shape[1]), dtype='uint8')
+# drawing_mask = np.zeros((frame.shape[0], frame.shape[1]), dtype='uint8')
 drawing = np.zeros((frame.shape[0], frame.shape[1], 3), dtype='uint8')
 
 while True:
@@ -57,18 +62,25 @@ while True:
     # Processing
     # -=-=-=-=-=-
 
+    # MASK
+
     blurred_frame = cv2.GaussianBlur(frame, (5,5), 0)
     hsv = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2HSV)
     
     lower_blue = np.array([l_h, l_s, l_v])
     upper_blue = np.array([u_h, u_s, u_v])
 
-    mask = cv2.inRange(hsv, lower_blue, upper_blue)
+    mask = cv2.inRange(hsv, lower_blue, upper_blue) 
 
+    # COLORS
+    frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    frame_hsv[:, :, 1] = 255  # Max saturation
+    frame_hsv[:, :, 2] = 255  # Max brightness
+    result = cv2.cvtColor(frame_hsv, cv2.COLOR_HSV2BGR)
 
-    drawing_mask = cv2.bitwise_or(drawing_mask, mask)
-    result = cv2.bitwise_and(frame, frame, mask=mask)
+    result = cv2.bitwise_and(result, result, mask=mask)
 
+    # COMBINE ALL
     drawing = cv2.add(result, drawing)
 
     result = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2GRAY)
@@ -143,8 +155,8 @@ while True:
         l_h = color_limits[0]
         u_h = color_limits[1]
 
-        l_s = 100
-        l_v = 100
+        l_s = min_saturation
+        l_v = min_brightness
 
         if changed_mode:
             cv2.setTrackbarPos("L - H", "Trackbars", l_h)
@@ -158,8 +170,9 @@ while True:
     #    UI
     # -=-=-=-=-
 
-    # FPS
     if debug_mode:
+
+        # FPS
         fps = cv2.getTickFrequency()/(cv2.getTickCount()-timer)
         fps = f'fps: {int(fps)}'
         cv2.putText(mask,fps,(mask.shape[1]-100,50),cv2.FONT_HERSHEY_SIMPLEX,0.7,(255,255,255),2)
@@ -167,8 +180,10 @@ while True:
 
         timer = cv2.getTickCount() # must be before video read
 
+        # SHOW
         cv2.imshow("frame", frame)
-    
+        cv2.imshow("drawing", drawing)
+
     else:
         cv2.putText(mask,f'color mode: {color_mode}',(50,mask.shape[0]-50),cv2.FONT_HERSHEY_SIMPLEX,0.7,(255,255,255),2)
 
@@ -179,9 +194,12 @@ while True:
     if changed_mode:
         try:
             cv2.destroyWindow('frame')
+            cv2.destroyWindow('drawing')
+
         except:
             pass
-        changed_mode = False
+
+    changed_mode = False
 
 cap.release()
 cv2.destroyAllWindows()
