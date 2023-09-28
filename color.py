@@ -1,11 +1,13 @@
 import cv2
 import numpy as np
+import datetime
 
 debug_mode = False
 paused = False
 changed_mode = True
 
 filter_mode = None
+line_mode = 'canny'
 
 color_mode = 'green'
 color_limits = (70, 85)
@@ -32,8 +34,8 @@ cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 
 print("Frame default resolution: (" + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")")
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640) # 1024x576
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 800) # 1024x576; 800x600; 640x480
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)
 print("Frame resolution set to: (" + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")")
 
 
@@ -92,9 +94,14 @@ while True:
     # COMBINE ALL
     drawing = cv2.add(result, drawing)
 
-    result = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2GRAY)
-    result = cv2.Canny(result, 150, 175)
-    result = cv2.merge([result, result, result])
+    if line_mode == 'canny':
+        result = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2GRAY)
+        result = cv2.Canny(result, 150, 175)
+        result = cv2.merge([result, result, result])
+
+    else:
+        result = np.zeros((frame.shape[0], frame.shape[1], 3), dtype='uint8')
+    
     result = cv2.add(drawing, result)
 
     # -=-=-=-=-
@@ -126,20 +133,8 @@ while True:
             drawing = np.zeros((frame.shape[0], frame.shape[1], 3), dtype='uint8')
 
         case 115:
-            """
-            logo = cv2.imread('C:/code/openCV/painter/hsvMask/manna_team_logo.png')
-            logo = rescaleFrame(logo, 0.2)
-            frame_with_logo = result.copy()
-            logo_height, logo_width, _ = logo.shape
-            frame_with_logo[10:10+logo_height, 10:10+logo_width] = logo
-        
-            # talvez o diretorio não tenha permissão para salvar imagem
-            print(f'yeah {cv2.imwrite("frame_with_logo.png", frame_with_logo)}')
-            cv2.imshow('windows', frame_with_logo)
-            """
-
             logo = cv2.imread('C:/code/openCV/painter/hsvMask/manna_team_logo.png', cv2.IMREAD_UNCHANGED)
-            logo = rescaleFrame(logo, 0.1)
+            logo = rescaleFrame(logo, 0.5)
             frame_with_logo = result.copy()
             logo_height, logo_width, _ = logo.shape
             roi = frame_with_logo[10:10+logo_height, 10:10+logo_width]
@@ -148,7 +143,16 @@ while True:
             logo = cv2.bitwise_and(logo, logo, mask=logo_mask)
             logo = cv2.add(roi, logo)
             frame_with_logo[10:10+logo_height, 10:10+logo_width] = logo
-            cv2.imwrite('frame_with_logo.png', frame_with_logo)
+
+            current_datetime = datetime.datetime.now()
+            timestamp = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
+
+            if cv2.imwrite(f'print_{timestamp}.png', frame_with_logo):
+                print('Imagem salva com sucesso!')
+            else:
+                print('Erro ao salvar a imagem.')
+
+
             cv2.imshow('windows', frame_with_logo)
 
         # COLOR CODES
@@ -177,6 +181,9 @@ while True:
 
         case 102: # f code
             filter_mode = 'flip' if filter_mode == None else None
+
+        case 108: # l code
+            line_mode = 'canny' if line_mode == None else None
 
     if debug_mode:
         l_h = cv2.getTrackbarPos("L - H", "Trackbars")
