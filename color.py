@@ -19,12 +19,21 @@ u_h, u_s, u_v = 160, 255, 255
 def nothing(x):
     pass
 
-cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+def rescaleFrame(frame, scale=0.5):
+    width = int(frame.shape[1] * scale) # don't panic! just calculating
+    height = int(frame.shape[0] * scale)
+
+    dimensions = (width, height)
+
+    return cv2.resize(frame, dimensions, interpolation=cv2.INTER_AREA)
+
+
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 
 print("Frame default resolution: (" + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")")
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1024)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 576)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640) # 1024x576
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 print("Frame resolution set to: (" + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")")
 
 
@@ -115,6 +124,32 @@ while True:
         
         case 114: # r code
             drawing = np.zeros((frame.shape[0], frame.shape[1], 3), dtype='uint8')
+
+        case 115:
+            """
+            logo = cv2.imread('C:/code/openCV/painter/hsvMask/manna_team_logo.png')
+            logo = rescaleFrame(logo, 0.2)
+            frame_with_logo = result.copy()
+            logo_height, logo_width, _ = logo.shape
+            frame_with_logo[10:10+logo_height, 10:10+logo_width] = logo
+        
+            # talvez o diretorio não tenha permissão para salvar imagem
+            print(f'yeah {cv2.imwrite("frame_with_logo.png", frame_with_logo)}')
+            cv2.imshow('windows', frame_with_logo)
+            """
+
+            logo = cv2.imread('C:/code/openCV/painter/hsvMask/manna_team_logo.png', cv2.IMREAD_UNCHANGED)
+            logo = rescaleFrame(logo, 0.1)
+            frame_with_logo = result.copy()
+            logo_height, logo_width, _ = logo.shape
+            roi = frame_with_logo[10:10+logo_height, 10:10+logo_width]
+            logo_mask = logo[:, :, 3]
+            logo = logo[:, :, 0:3]
+            logo = cv2.bitwise_and(logo, logo, mask=logo_mask)
+            logo = cv2.add(roi, logo)
+            frame_with_logo[10:10+logo_height, 10:10+logo_width] = logo
+            cv2.imwrite('frame_with_logo.png', frame_with_logo)
+            cv2.imshow('windows', frame_with_logo)
 
         # COLOR CODES
 
