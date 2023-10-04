@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import datetime
 
+import functions as f
+
 '''
 CODES
     esc - close
@@ -24,7 +26,7 @@ fullscreen_mode = False
 paused = False
 changed_mode = True
 
-filter_mode = None
+filter_mode = 0
 line_mode = 'canny'
 inverted_color_mode = False
 
@@ -39,15 +41,6 @@ u_h, u_s, u_v = 160, 255, 255
 
 def nothing(x):
     pass
-
-def rescaleFrame(frame, scale=0.5):
-    width = int(frame.shape[1] * scale)
-    height = int(frame.shape[0] * scale)
-
-    dimensions = (width, height)
-
-    return cv2.resize(frame, dimensions, interpolation=cv2.INTER_AREA)
-
 
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
@@ -85,10 +78,24 @@ while True:
 
     match filter_mode:
 
-        case 'flip':
-            frame = cv2.flip(frame, 1)
-            half = frame[:frame.shape[0], :frame.shape[1]//2]
-            frame[:, frame.shape[1]//2:] = cv2.flip(half, 1)
+        case 0:
+            frame = cv2.GaussianBlur(frame, (5,5), 0)
+
+        case 1:
+            frame = f.apply_mirror(frame)
+            frame = cv2.GaussianBlur(frame, (5,5), 0)
+
+        case 2:
+            frame = cv2.GaussianBlur(frame, (5,5), 0)
+            frame = f.apply_pixelation(frame)
+
+        case 3:
+            frame = f.apply_fisheye(frame)
+            frame = cv2.GaussianBlur(frame, (5,5), 0)
+
+        case 4:
+            frame = cv2.flip(frame, 0)
+            frame = cv2.GaussianBlur(frame, (5,5), 0)
 
     # -=-=-=-=-=-
     # Processing
@@ -96,8 +103,8 @@ while True:
 
     # MASK
 
-    blurred_frame = cv2.GaussianBlur(frame, (5,5), 0)
-    hsv = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2HSV)
+    #cv2.imshow('blur', blurred_frame)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     
     lower_blue = np.array([l_h, l_s, l_v])
     upper_blue = np.array([u_h, u_s, u_v])
@@ -116,7 +123,7 @@ while True:
     drawing = cv2.add(result, drawing)
 
     if line_mode == 'canny':
-        result = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2GRAY)
+        result = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         result = cv2.Canny(result, 150, 175)
         result = cv2.merge([result, result, result])
 
@@ -160,8 +167,8 @@ while True:
         case 115: # s code
 
             logo = cv2.imread('manna_team_logo.png', cv2.IMREAD_UNCHANGED)
-            logo = rescaleFrame(logo, 0.5)
-            frame_with_logo = rescaleFrame(result, 2).copy()
+            logo = f.rescaleFrame(logo, 0.5)
+            frame_with_logo = f.rescaleFrame(result, 2).copy()
             logo_height, logo_width, _ = logo.shape
             roi = frame_with_logo[10:10+logo_height, 10:10+logo_width]
             logo_mask = logo[:, :, 3]
@@ -186,22 +193,27 @@ while True:
 
         # COLOR CODES
 
-        case 103: # g code [verde]
-            color_mode = 'green'
+        case 49: # 1 code [verde]
+            color_mode = 'verde'
             color_limits = (70, 85)
             changed_mode = True
-
-        case 117: # u code [roxo]
-            color_mode = 'purple'
-            color_limits = (145, 160)
-            changed_mode = True
         
-        case 98: # b code [azul claro]
-            color_mode = 'light blue'
+        case 50: # 2 code [azul claro]
+            color_mode = 'azul claro'
             color_limits = (95, 110)
             changed_mode = True
 
-        case 97: # a code [entre verde e azul claro]
+        case 51: # 3 code [azul escuro]
+            color_mode = 'azul escuro'
+            color_limits = (100, 115)
+            changed_mode = True
+        
+        case 52: # 4 code [roxo]
+            color_mode = 'roxo'
+            color_limits = (145, 160)
+            changed_mode = True
+
+        case 48: # 0 code [entre verde e roxo]
             color_mode = 'all'
             color_limits = (70, 160)
             changed_mode = True
@@ -211,8 +223,8 @@ while True:
         case 105: # i code
             inverted_color_mode = not inverted_color_mode
 
-        case 109: # m code
-            filter_mode = 'flip' if filter_mode == None else None
+        case 98: # b code
+            filter_mode = (filter_mode+1) % 5
 
         case 108: # l code
             line_mode = 'canny' if line_mode == None else None
@@ -256,7 +268,7 @@ while True:
 
         # SHOW
         cv2.imshow("frame", frame)
-        cv2.imshow("drawing", drawing)
+        # cv2.imshow("drawing", drawing)
 
     else:
         cv2.putText(mask,f'color mode: {color_mode}',(50,mask.shape[0]-50),cv2.FONT_HERSHEY_SIMPLEX,0.7,(255,255,255),2)
