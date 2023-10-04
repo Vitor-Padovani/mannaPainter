@@ -53,8 +53,8 @@ cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 
 print("Frame default resolution: (" + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")")
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640) # 1024x576; 800x600; 640x480; 960x540; 854x480; 640x360
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640) # 1024x576; 800x600;
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360) # 16:9 -> 640x480; 960x540; 854x480; 640x360
 print("Frame resolution set to: (" + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")")
 
 
@@ -70,7 +70,10 @@ timer = cv2.getTickCount() # must be before video read
 _, frame = cap.read()
 
 drawing = np.zeros((frame.shape[0], frame.shape[1], 3), dtype='uint8')
+
 cv2.namedWindow("result", cv2.WINDOW_NORMAL)
+cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+cv2.namedWindow("mask", cv2.WINDOW_NORMAL)
 
 while True:
     _, frame = cap.read()
@@ -156,7 +159,7 @@ while True:
 
         case 115: # s code
 
-            logo = cv2.imread('C:/code/openCV/painter/hsvMask/manna_team_logo.png', cv2.IMREAD_UNCHANGED)
+            logo = cv2.imread('manna_team_logo.png', cv2.IMREAD_UNCHANGED)
             logo = rescaleFrame(logo, 0.5)
             frame_with_logo = rescaleFrame(result, 2).copy()
             logo_height, logo_width, _ = logo.shape
