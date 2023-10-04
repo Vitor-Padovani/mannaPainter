@@ -279,7 +279,9 @@ while True:
         try:
             cv2.destroyWindow('frame')
             cv2.destroyWindow('drawing')
-            #cv2.destroyWindow("result")
+
+            cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+            cv2.namedWindow("drawing", cv2.WINDOW_NORMAL)
 
         except:
             pass
