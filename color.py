@@ -2,12 +2,31 @@ import cv2
 import numpy as np
 import datetime
 
+'''
+CODES
+    esc - close
+    f - fullscreen
+    p - pause
+    r - reset
+    s - save
+
+    g - green
+    u - purple
+    b - blue
+    a - all
+
+    m - mirror
+    l - line
+'''
+
 debug_mode = False
+fullscreen_mode = False
 paused = False
 changed_mode = True
 
 filter_mode = None
 line_mode = 'canny'
+inverted_color_mode = False
 
 color_mode = 'green'
 color_limits = (70, 85)
@@ -22,7 +41,7 @@ def nothing(x):
     pass
 
 def rescaleFrame(frame, scale=0.5):
-    width = int(frame.shape[1] * scale) # don't panic! just calculating
+    width = int(frame.shape[1] * scale)
     height = int(frame.shape[0] * scale)
 
     dimensions = (width, height)
@@ -34,8 +53,8 @@ cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 
 print("Frame default resolution: (" + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")")
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 800) # 1024x576; 800x600; 640x480
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640) # 1024x576; 800x600; 640x480; 960x540; 854x480; 640x360
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
 print("Frame resolution set to: (" + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")")
 
 
@@ -50,9 +69,8 @@ cv2.createTrackbar("U - V", "Trackbars", 255, 255, nothing)
 timer = cv2.getTickCount() # must be before video read
 _, frame = cap.read()
 
-# TODO make the drawing receive the drawing_mask but with the color blue
-# drawing_mask = np.zeros((frame.shape[0], frame.shape[1]), dtype='uint8')
 drawing = np.zeros((frame.shape[0], frame.shape[1], 3), dtype='uint8')
+cv2.namedWindow("result", cv2.WINDOW_NORMAL)
 
 while True:
     _, frame = cap.read()
@@ -123,7 +141,11 @@ while True:
             break
 
         case 100: # d code
-            debug_mode = 1 - debug_mode
+            debug_mode = not debug_mode
+            changed_mode = True
+        
+        case 102: # f code
+            fullscreen_mode = not fullscreen_mode
             changed_mode = True
 
         case 112: # p code
@@ -132,10 +154,11 @@ while True:
         case 114: # r code
             drawing = np.zeros((frame.shape[0], frame.shape[1], 3), dtype='uint8')
 
-        case 115:
+        case 115: # s code
+
             logo = cv2.imread('C:/code/openCV/painter/hsvMask/manna_team_logo.png', cv2.IMREAD_UNCHANGED)
             logo = rescaleFrame(logo, 0.5)
-            frame_with_logo = result.copy()
+            frame_with_logo = rescaleFrame(result, 2).copy()
             logo_height, logo_width, _ = logo.shape
             roi = frame_with_logo[10:10+logo_height, 10:10+logo_width]
             logo_mask = logo[:, :, 3]
@@ -143,6 +166,9 @@ while True:
             logo = cv2.bitwise_and(logo, logo, mask=logo_mask)
             logo = cv2.add(roi, logo)
             frame_with_logo[10:10+logo_height, 10:10+logo_width] = logo
+
+            if inverted_color_mode: # gambiarra
+                frame_with_logo = cv2.bitwise_not(frame_with_logo)
 
             current_datetime = datetime.datetime.now()
             timestamp = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
@@ -162,9 +188,9 @@ while True:
             color_limits = (70, 85)
             changed_mode = True
 
-        case 121: # y code [amarelo]
-            color_mode = 'yellow'
-            color_limits = (15, 30)
+        case 117: # u code [roxo]
+            color_mode = 'purple'
+            color_limits = (145, 160)
             changed_mode = True
         
         case 98: # b code [azul claro]
@@ -172,14 +198,17 @@ while True:
             color_limits = (95, 110)
             changed_mode = True
 
-        case 97: # a code [todas menos vermelho]
+        case 97: # a code [entre verde e azul claro]
             color_mode = 'all'
-            color_limits = (15, 115)
+            color_limits = (70, 160)
             changed_mode = True
 
         # FILTER CODES
 
-        case 102: # f code
+        case 105: # i code
+            inverted_color_mode = not inverted_color_mode
+
+        case 109: # m code
             filter_mode = 'flip' if filter_mode == None else None
 
         case 108: # l code
@@ -229,14 +258,25 @@ while True:
     else:
         cv2.putText(mask,f'color mode: {color_mode}',(50,mask.shape[0]-50),cv2.FONT_HERSHEY_SIMPLEX,0.7,(255,255,255),2)
 
-
     cv2.imshow("mask", mask)
+
+    # FULLSCREEN MODE
+    if fullscreen_mode:
+        cv2.setWindowProperty("result", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    else:
+        cv2.setWindowProperty("result", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+    
+    if inverted_color_mode:
+        result = cv2.bitwise_not(result)
+
+    # resized_result = cv2.resize(result, (frame.shape[1], frame.shape[0]))
     cv2.imshow("result", result)
 
     if changed_mode:
         try:
             cv2.destroyWindow('frame')
             cv2.destroyWindow('drawing')
+            #cv2.destroyWindow("result")
 
         except:
             pass
