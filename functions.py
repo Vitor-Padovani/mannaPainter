@@ -40,3 +40,24 @@ def apply_fisheye(frame, strength=0.5):
     distorted_frame = cv2.remap(frame, distorted_x.astype(np.float32), distorted_y.astype(np.float32), interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
     return distorted_frame
+
+def add_hsv_border(frame, hsv_color):
+    # Converte a cor HSV para RGB
+    rgb_color = cv2.cvtColor(np.uint8([[hsv_color]]), cv2.COLOR_HSV2BGR)[0][0]
+
+    # Define a espessura da borda
+    border_thickness = 1
+
+    # Cria uma cópia do frame
+    frame_with_border = frame.copy()
+
+    # Desenha a borda no frame
+    frame_with_border = cv2.rectangle(
+        frame_with_border,
+        (0, 0),
+        (frame.shape[1]-1, frame.shape[0]-1),
+        rgb_color.tolist(),
+        border_thickness,
+    )
+
+    return frame_with_border

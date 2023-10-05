@@ -275,16 +275,21 @@ while True:
 
     cv2.imshow("mask", mask)
 
+    # COLOR CONTOUR
+    if color_mode != 'all':
+        color_limits_average = (color_limits[0]+color_limits[1]) / 2
+        result = f.add_hsv_border(result, (color_limits_average, 255, 255))
+
+    # INVERTED COLOR MODE
+    if inverted_color_mode:
+        result = cv2.bitwise_not(result)
+
     # FULLSCREEN MODE
     if fullscreen_mode:
         cv2.setWindowProperty("result", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     else:
         cv2.setWindowProperty("result", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
-    
-    if inverted_color_mode:
-        result = cv2.bitwise_not(result)
 
-    # resized_result = cv2.resize(result, (frame.shape[1], frame.shape[0]))
     cv2.imshow("result", result)
 
     if changed_mode:
