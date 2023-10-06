@@ -210,12 +210,12 @@ while True:
         
         case 52: # 4 code [roxo]
             color_mode = 'roxo'
-            color_limits = (145, 160)
+            color_limits = (150, 165)
             changed_mode = True
 
         case 48: # 0 code [entre verde e roxo]
             color_mode = 'all'
-            color_limits = (70, 160)
+            color_limits = (70, 165)
             changed_mode = True
 
         # FILTER CODES
